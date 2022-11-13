@@ -1,7 +1,11 @@
+"""
+    Actions for the pokemon API
+"""
+
 from sqlalchemy.orm import Session
 from . import models, schemas
+from .models import Pokemon
 from .utils.pokeapi import get_pokemon_name
-
 
 def get_trainer(database: Session, trainer_id: int):
     """
@@ -40,19 +44,22 @@ def add_trainer_pokemon(database: Session, pokemon: schemas.PokemonCreate, train
     """
         Create a pokemon and link it to a trainer
     """
-    db_item = models.Pokemon(
-        **pokemon.dict(), name=get_pokemon_name(pokemon.api_id), trainer_id=trainer_id)
-    database.add(db_item)
-    database.commit()
-    database.refresh(db_item)
-    return db_item
+    result = get_pokemon_name(pokemon.api_id)
+    if result:
+        db_item = models.Pokemon(
+            **pokemon.dict(), name=result, trainer_id=trainer_id)
+        database.add(db_item)
+        database.commit()
+        database.refresh(db_item)
+        return db_item
+    return None
 
 
 def add_trainer_item(database: Session, item: schemas.ItemCreate, trainer_id: int):
     """
         Create an item and link it to a trainer
     """
-    db_item = models.Item(**item.dict(), owner_id=trainer_id)
+    db_item = models.Item(**item.dict(), trainer_id=trainer_id)
     database.add(db_item)
     database.commit()
     database.refresh(db_item)
@@ -67,9 +74,13 @@ def get_items(database: Session, skip: int = 0, limit: int = 100):
     return database.query(models.Item).offset(skip).limit(limit).all()
 
 
-def get_pokemon(database: Session, pokemon_id: int):
+def get_pokemon(database: Session, pokemon_id: int) -> Pokemon:
     """
         Find a pokemon by his id
+        Params:
+            pokemon_id (int): id of the pokemon
+        Return:
+            Pokemon: pokemon
     """
     return database.query(models.Pokemon).filter(models.Pokemon.id == pokemon_id).first()
 
